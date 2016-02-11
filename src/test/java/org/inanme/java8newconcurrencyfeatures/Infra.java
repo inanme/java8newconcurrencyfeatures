@@ -32,17 +32,32 @@ public class Infra {
         System.out.printf("Test %s ended  : %s\n", name.getMethodName(), sdf.format(new Date()));
     }
 
-    final ExecutorService es = Executors.newSingleThreadExecutor();
+    final ExecutorService processingPool = Executors.newCachedThreadPool(r -> new Thread(r, "Processing  "));
+
+    final ExecutorService ioPool = Executors.newCachedThreadPool(r -> new Thread(r, "Input/Output"));
+
+    void giveMeSomeTime(long secs) {
+        try {
+            TimeUnit.SECONDS.sleep(secs);
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
+    }
+
+    void log(String s) {
+        System.out.println(Thread.currentThread().getName() + " : " + s);
+    }
 
     @After
     public void shutdownServices() {
-        es.shutdown();
+        processingPool.shutdown();
+        ioPool.shutdown();
     }
 
-    class WaitAndReturnValue implements Callable<Long> {
+    class WaitThisLongAndReturnThisValue implements Callable<Long> {
         final long value;
 
-        WaitAndReturnValue(long value) {
+        WaitThisLongAndReturnThisValue(long value) {
             this.value = value;
         }
 
@@ -59,5 +74,4 @@ public class Infra {
             return value;
         }
     }
-
 }
