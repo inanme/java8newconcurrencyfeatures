@@ -5,47 +5,56 @@ import org.junit.Before;
 import org.junit.Rule;
 import org.junit.rules.TestName;
 
-import java.text.SimpleDateFormat;
-import java.util.Date;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.Random;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 public class Infra {
 
     @Rule
     final public TestName name = new TestName();
-
-    final SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss.SSS");
-
+    final DateTimeFormatter dateTimeFormatter = DateTimeFormatter.ofPattern("HH:mm:ss:SSS");
     final Random random = new Random();
 
     @Before
     public void markStart() {
-        System.out.printf("Test %s started: %s\n", name.getMethodName(), sdf.format(new Date()));
+        System.out.printf("Test %s started: %s\n", name.getMethodName(), LocalDateTime.now().format(dateTimeFormatter));
     }
 
     @After
     public void markFinish() {
-        System.out.printf("Test %s ended  : %s\n", name.getMethodName(), sdf.format(new Date()));
+        System.out.printf("Test %s ended  : %s\n", name.getMethodName(), LocalDateTime.now().format(dateTimeFormatter));
     }
 
     final ExecutorService processingPool = Executors.newCachedThreadPool(r -> new Thread(r, "Processing  "));
 
     final ExecutorService ioPool = Executors.newCachedThreadPool(r -> new Thread(r, "Input/Output"));
 
-    void giveMeSomeTime(long secs) {
+    void giveMeSomeTime(long milis) {
         try {
-            TimeUnit.SECONDS.sleep(secs);
+            TimeUnit.MILLISECONDS.sleep(milis);
         } catch (InterruptedException e) {
-            e.printStackTrace();
+            Thread.currentThread().interrupt();
         }
     }
 
-    void log(String s) {
-        System.out.println(Thread.currentThread().getName() + " : " + s);
+    <T> T logReturn(T t) {
+        log("logReturn : " + t);
+        return t;
+    }
+
+    void log(Object s) {
+        String log = Stream.of(
+                Thread.currentThread().getName(),
+                LocalDateTime.now().format(dateTimeFormatter),
+                s.toString()).collect(Collectors.joining(" : "));
+        System.out.println(log);
     }
 
     @After
@@ -54,24 +63,36 @@ public class Infra {
         ioPool.shutdown();
     }
 
-    class WaitThisLongAndReturnThisValue implements Callable<Long> {
-        final long value;
+    class FutureLong implements Callable<Long> {
+        final long milis;
 
-        WaitThisLongAndReturnThisValue(long value) {
-            this.value = value;
+        FutureLong(long milis) {
+            this.milis = milis;
         }
 
         @Override
         public Long call() {
-            try {
-                TimeUnit.SECONDS.sleep(value);
-            } catch (InterruptedException e) {
-                e.printStackTrace();
+            giveMeSomeTime(milis);
+            if (milis == 3000l) {
+                throw new IllegalArgumentException(String.format("%s is a invalid number", milis));
             }
-            if (value == 3l) {
-                throw new IllegalArgumentException(String.format("%s is a invalid number", value));
-            }
-            return value;
+            log("FutureLong : " + milis);
+            return milis;
+        }
+    }
+
+    class FutureRandomBoolean implements Callable<Boolean> {
+        final long milis;
+
+        FutureRandomBoolean(long milis) {
+            this.milis = milis;
+        }
+
+        @Override
+        public Boolean call() {
+            giveMeSomeTime(milis);
+            log("FutureRandomBoolean : " + milis);
+            return random.nextBoolean();
         }
     }
 }

@@ -2,19 +2,14 @@ package org.inanme.java8newconcurrencyfeatures;
 
 import org.junit.Test;
 
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.Future;
-import java.util.concurrent.locks.ReadWriteLock;
-import java.util.concurrent.locks.ReentrantLock;
-import java.util.concurrent.locks.ReentrantReadWriteLock;
-import java.util.concurrent.locks.StampedLock;
+import java.util.concurrent.*;
+import java.util.concurrent.locks.*;
 
 public class Demo extends Infra {
 
     @Test
     public void slide8() {
-        Future<Long> value = ioPool.submit(new WaitThisLongAndReturnThisValue(2));
+        Future<Long> value = ioPool.submit(new FutureLong(2000));
         try {
             //Waits if necessary for the computation to complete,
             // and then retrieves its result.
@@ -28,12 +23,48 @@ public class Demo extends Infra {
     @Test
     public void slide9() {
         CompletableFuture<Long> completableFuture =
-            CompletableFuture.supplyAsync(() -> new WaitThisLongAndReturnThisValue(2).call(), ioPool);
+                CompletableFuture.supplyAsync(() -> new FutureLong(2000).call(), ioPool);
 
         completableFuture.whenComplete((val, ex) -> log("Completed val " + val))
-                         .thenApplyAsync(val -> val * 2, processingPool)
-                         .thenAccept(val -> log("Transformed val " + val))
-                         .thenRunAsync(() -> log("Send an email"), ioPool);
+                .thenApplyAsync(val -> val * 2, processingPool)
+                .thenAccept(val -> log("Transformed val " + val))
+                .thenRunAsync(() -> log("Send an email"), ioPool);
+
+        giveMeSomeTime(3);
+    }
+
+    @Test
+    public void runningAll() {
+        CompletableFuture<Boolean> bool = CompletableFuture.supplyAsync(new FutureRandomBoolean(2000)::call);
+        CompletableFuture<Long> wait2 = CompletableFuture.supplyAsync(new FutureLong(2000)::call);
+        CompletableFuture<Long> wait3 = CompletableFuture.supplyAsync(new FutureLong(2000)::call);
+
+        CompletableFuture.allOf(bool, wait2, wait3).thenAccept(it -> log("all finished"));
+
+        giveMeSomeTime(5000);
+    }
+
+    @Test
+    public void slide91() {
+        FutureLong wait2 = new FutureLong(2000);
+        FutureLong wait3 = new FutureLong(2000);
+        CompletableFuture
+                .supplyAsync(new FutureRandomBoolean(2000)::call)
+                .thenApply(this::logReturn)
+                .thenApplyAsync(it -> it ? wait2.call() : wait3.call())
+                .thenAccept(this::log);
+        giveMeSomeTime(5000);
+    }
+
+    @Test
+    public void slide11() {
+        CompletableFuture<Long> completableFuture =
+                CompletableFuture.supplyAsync(() -> new FutureLong(2000).call(), ioPool);
+
+        completableFuture.whenComplete((val, ex) -> log("Completed val " + val))
+                .thenApplyAsync(val -> val * 2, processingPool)
+                .thenAccept(val -> log("Transformed val " + val))
+                .thenRunAsync(() -> log("Send an email"), ioPool);
 
         giveMeSomeTime(3);
     }
