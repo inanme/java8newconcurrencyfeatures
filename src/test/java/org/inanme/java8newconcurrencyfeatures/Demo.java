@@ -25,12 +25,12 @@ public class Demo extends Infra {
         CompletableFuture<Long> completableFuture =
                 CompletableFuture.supplyAsync(() -> new FutureLong(2000).call(), ioPool);
 
-        completableFuture.whenComplete((val, ex) -> log("Completed val " + val))
+        completableFuture.whenComplete((val, ex) -> log("Completed val ", val))
                 .thenApplyAsync(val -> val * 2, processingPool)
-                .thenAccept(val -> log("Transformed val " + val))
+                .thenAccept(val -> log("Transformed val", val))
                 .thenRunAsync(() -> log("Send an email"), ioPool);
 
-        giveMeSomeTime(3);
+        giveMeSomeTime(3000);
     }
 
     @Test

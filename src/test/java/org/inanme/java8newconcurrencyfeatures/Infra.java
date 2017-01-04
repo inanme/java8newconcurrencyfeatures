@@ -1,5 +1,6 @@
 package org.inanme.java8newconcurrencyfeatures;
 
+import org.apache.commons.lang3.StringUtils;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Rule;
@@ -7,6 +8,7 @@ import org.junit.rules.TestName;
 
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
+import java.util.Arrays;
 import java.util.Random;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutorService;
@@ -24,12 +26,12 @@ public class Infra {
 
     @Before
     public void markStart() {
-        System.out.printf("Test %s started: %s\n", name.getMethodName(), LocalDateTime.now().format(dateTimeFormatter));
+        log("Test started", name.getMethodName());
     }
 
     @After
     public void markFinish() {
-        System.out.printf("Test %s ended  : %s\n", name.getMethodName(), LocalDateTime.now().format(dateTimeFormatter));
+        log("Test finished", name.getMethodName());
     }
 
     final ExecutorService processingPool = Executors.newCachedThreadPool(r -> new Thread(r, "Processing  "));
@@ -49,11 +51,11 @@ public class Infra {
         return t;
     }
 
-    void log(Object s) {
-        String log = Stream.of(
-                Thread.currentThread().getName(),
-                LocalDateTime.now().format(dateTimeFormatter),
-                s.toString()).collect(Collectors.joining(" : "));
+    void log(Object... args) {
+        String log = Stream.concat(
+                Stream.of(StringUtils.rightPad(Thread.currentThread().getName(), 12), LocalDateTime.now().format(dateTimeFormatter)),
+                Arrays.stream(args).map(Object::toString))
+                .collect(Collectors.joining(" : "));
         System.out.println(log);
     }
 
