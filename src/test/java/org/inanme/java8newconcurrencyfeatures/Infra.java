@@ -34,7 +34,7 @@ public class Infra {
         log("Test finished", name.getMethodName());
     }
 
-    final ExecutorService processingPool = Executors.newCachedThreadPool(r -> new Thread(r, "Processing  "));
+    final ExecutorService processingPool = Executors.newCachedThreadPool(r -> new Thread(r, "Processing"));
 
     final ExecutorService ioPool = Executors.newCachedThreadPool(r -> new Thread(r, "Input/Output"));
 
@@ -53,7 +53,7 @@ public class Infra {
 
     void log(Object... args) {
         String log = Stream.concat(
-                Stream.of(StringUtils.rightPad(Thread.currentThread().getName(), 12), LocalDateTime.now().format(dateTimeFormatter)),
+                Stream.of(StringUtils.rightPad(Thread.currentThread().getName(), 32), LocalDateTime.now().format(dateTimeFormatter)),
                 Arrays.stream(args).map(Object::toString))
                 .collect(Collectors.joining(" : "));
         System.out.println(log);

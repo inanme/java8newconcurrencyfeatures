@@ -66,7 +66,25 @@ public class Demo extends Infra {
                 .thenAccept(val -> log("Transformed val " + val))
                 .thenRunAsync(() -> log("Send an email"), ioPool);
 
-        giveMeSomeTime(3);
+        giveMeSomeTime(3000);
+    }
+
+    @Test
+    public void usingSubsequentPool() {
+        CompletableFuture.supplyAsync(() -> new FutureLong(2000).call(), ioPool)
+                .thenApply(val -> {
+                    log("Transformed1 val " + val);
+                    return val * 2;
+                })
+                .thenApplyAsync(val -> {
+                    log("Transformed2 val " + val);
+                    return val * 2;
+                }, processingPool)
+                .thenApply(val -> {
+                    log("Transformed3 val " + val);
+                    return val * 2;
+                });
+        giveMeSomeTime(3000);
     }
 
     @Test
