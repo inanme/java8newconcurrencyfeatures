@@ -14,7 +14,7 @@ public class Demo extends Infra {
             //Waits if necessary for the computation to complete,
             // and then retrieves its result.
             Long aLong = value.get();
-            System.out.println(aLong);
+            log(aLong);
         } catch (InterruptedException | ExecutionException e) {
             e.printStackTrace();
         }
@@ -35,11 +35,27 @@ public class Demo extends Infra {
 
     @Test
     public void runningAll() {
-        CompletableFuture<Boolean> bool = CompletableFuture.supplyAsync(new FutureRandomBoolean(2000)::call);
-        CompletableFuture<Long> wait2 = CompletableFuture.supplyAsync(new FutureLong(2000)::call);
-        CompletableFuture<Long> wait3 = CompletableFuture.supplyAsync(new FutureLong(2000)::call);
+        CompletableFuture<Boolean> bool = CompletableFuture.supplyAsync(new FutureRandomBoolean(2000)::call, thread0);
+        CompletableFuture<Long> wait2 = CompletableFuture.supplyAsync(new FutureLong(2000)::call, thread1);
+        CompletableFuture<Long> buggy = CompletableFuture.supplyAsync(new FutureLong(3000)::call, thread2);
 
-        CompletableFuture.allOf(bool, wait2, wait3).thenAccept(it -> log("all finished"));
+        CompletableFuture.allOf(bool, wait2, buggy).thenAccept(it -> log("all finished successfully"));
+        bool.thenAccept(this::logReturn);
+        wait2.thenAccept(this::logReturn);
+        buggy.exceptionally(ex -> {
+            log(ex);
+            return 0l;
+        });
+
+        giveMeSomeTime(5000);
+    }
+
+    @Test
+    public void anyOf() {
+        CompletableFuture<Long> wait2 = CompletableFuture.supplyAsync(new FutureLong(4000)::call, thread1);
+        CompletableFuture<Long> buggy = CompletableFuture.supplyAsync(new FutureLong(3000)::call, thread2);
+
+        CompletableFuture.anyOf(wait2, buggy).thenAccept(it -> log("all finished successfully"));
 
         giveMeSomeTime(5000);
     }
@@ -61,9 +77,9 @@ public class Demo extends Infra {
         CompletableFuture<Long> completableFuture =
                 CompletableFuture.supplyAsync(() -> new FutureLong(2000).call(), ioPool);
 
-        completableFuture.whenComplete((val, ex) -> log("Completed val " + val))
+        completableFuture.whenComplete((val, ex) -> log("Completed val ", val))
                 .thenApplyAsync(val -> val * 2, processingPool)
-                .thenAccept(val -> log("Transformed val " + val))
+                .thenAccept(val -> log("Transformed val ", val))
                 .thenRunAsync(() -> log("Send an email"), ioPool);
 
         giveMeSomeTime(3000);
@@ -73,15 +89,15 @@ public class Demo extends Infra {
     public void usingSubsequentPool() {
         CompletableFuture.supplyAsync(() -> new FutureLong(2000).call(), ioPool)
                 .thenApply(val -> {
-                    log("Transformed1 val " + val);
+                    log("Transformed1 val", val);
                     return val * 2;
                 })
                 .thenApplyAsync(val -> {
-                    log("Transformed2 val " + val);
+                    log("Transformed2 val", val);
                     return val * 2;
                 }, processingPool)
                 .thenApply(val -> {
-                    log("Transformed3 val " + val);
+                    log("Transformed3 val", val);
                     return val * 2;
                 });
         giveMeSomeTime(3000);

@@ -1,19 +1,19 @@
 package org.inanme.java8newconcurrencyfeatures;
 
 import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.lang3.time.DurationFormatUtils;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.rules.TestName;
 
 import java.time.LocalDateTime;
+import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 import java.util.Arrays;
 import java.util.Random;
-import java.util.concurrent.Callable;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.TimeUnit;
+import java.util.concurrent.*;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -23,15 +23,45 @@ public class Infra {
     final public TestName name = new TestName();
     final DateTimeFormatter dateTimeFormatter = DateTimeFormatter.ofPattern("HH:mm:ss:SSS");
     final Random random = new Random();
+    private long start;
+
+    private AtomicInteger threadFactory0 = new AtomicInteger();
+
+    private AtomicInteger threadFactory1 = new AtomicInteger();
+
+    private AtomicInteger threadFactory2 = new AtomicInteger();
+
+    private AtomicInteger threadFactory3 = new AtomicInteger();
+
+    protected ExecutorService thread0 =
+            Executors.newCachedThreadPool(r -> new Thread(r, "thread0-" + threadFactory0.getAndIncrement()));
+
+    protected ExecutorService thread1 =
+            Executors.newCachedThreadPool(r -> new Thread(r, "thread1-" + threadFactory1.getAndIncrement()));
+
+    protected ExecutorService thread2 =
+            Executors.newCachedThreadPool(r -> new Thread(r, "thread2-" + threadFactory2.getAndIncrement()));
+
+    protected ExecutorService thread3 =
+            Executors.newCachedThreadPool(r -> new Thread(r, "thread3-" + threadFactory3.getAndIncrement()));
+
 
     @Before
-    public void markStart() {
-        log("Test started", name.getMethodName());
+    public void start() {
+        System.err.printf("Test %s started: %s\n", name.getMethodName(), now());
+        start = System.currentTimeMillis();
+    }
+
+    String now() {
+        return LocalDateTime.now(ZoneId.systemDefault()).format(DateTimeFormatter.ISO_TIME);
     }
 
     @After
-    public void markFinish() {
-        log("Test finished", name.getMethodName());
+    public void finish() {
+        System.err.printf("Test %s ended  : %s\n", name.getMethodName(), now());
+        long duration = System.currentTimeMillis() - start;
+        System.err.printf("Test %s took   : %s\n", name.getMethodName(),
+                DurationFormatUtils.formatDurationWords(duration, false, false));
     }
 
     final ExecutorService processingPool = Executors.newCachedThreadPool(r -> new Thread(r, "Processing"));
@@ -56,13 +86,13 @@ public class Infra {
                 Stream.of(StringUtils.rightPad(Thread.currentThread().getName(), 32), LocalDateTime.now().format(dateTimeFormatter)),
                 Arrays.stream(args).map(Object::toString))
                 .collect(Collectors.joining(" : "));
-        System.out.println(log);
+        System.err.println(log);
     }
 
     @After
     public void shutdownServices() {
-        processingPool.shutdown();
-        ioPool.shutdown();
+        Arrays.asList(processingPool, ioPool, thread0, thread1, thread1, thread2, thread3)
+                .forEach(ExecutorService::shutdown);
     }
 
     class FutureLong implements Callable<Long> {
