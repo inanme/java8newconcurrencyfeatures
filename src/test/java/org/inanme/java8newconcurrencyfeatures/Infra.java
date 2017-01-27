@@ -17,6 +17,8 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+import static java.lang.String.format;
+
 public class Infra {
 
     @Rule
@@ -48,7 +50,7 @@ public class Infra {
 
     @Before
     public void start() {
-        System.err.printf("Test %s started: %s\n", name.getMethodName(), now());
+        log(format("Test %s started: %s", name.getMethodName(), now()));
         start = System.currentTimeMillis();
     }
 
@@ -58,10 +60,10 @@ public class Infra {
 
     @After
     public void finish() {
-        System.err.printf("Test %s ended  : %s\n", name.getMethodName(), now());
+        log(format("Test %s ended  : %s", name.getMethodName(), now()));
         long duration = System.currentTimeMillis() - start;
-        System.err.printf("Test %s took   : %s\n", name.getMethodName(),
-                DurationFormatUtils.formatDurationWords(duration, false, false));
+        log(format("Test %s took   : %s", name.getMethodName(),
+                DurationFormatUtils.formatDurationWords(duration, false, false)));
     }
 
     final ExecutorService processingPool = Executors.newCachedThreadPool(r -> new Thread(r, "Processing"));
@@ -106,7 +108,7 @@ public class Infra {
         public Long call() {
             giveMeSomeTime(milis);
             if (milis == 3000l) {
-                throw new IllegalArgumentException(String.format("%s is a invalid number", milis));
+                throw new IllegalArgumentException(format("%s is a invalid number", milis));
             }
             log("FutureLong : " + milis);
             return milis;

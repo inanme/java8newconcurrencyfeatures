@@ -4,6 +4,10 @@ import org.junit.Test;
 
 import java.util.concurrent.*;
 import java.util.concurrent.locks.*;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
+
+import static org.junit.Assert.assertEquals;
 
 public class Demo extends Infra {
 
@@ -58,6 +62,27 @@ public class Demo extends Infra {
         CompletableFuture.anyOf(wait2, buggy).thenAccept(it -> log("all finished successfully"));
 
         giveMeSomeTime(5000);
+    }
+
+    @Test
+    public void HelloWorld() {
+        CompletableFuture.supplyAsync(() -> logReturn("Hello"))
+                .thenAcceptBoth(CompletableFuture.supplyAsync(() -> logReturn(" World")),
+                        (s1, s2) -> log(s1 + s2));
+    }
+
+    @Test
+    public void HelloBeautifulWorld() {
+        CompletableFuture<String> future1 = CompletableFuture.supplyAsync(() -> logReturn("Hello"));
+        CompletableFuture<String> future2 = CompletableFuture.supplyAsync(() -> logReturn("Beautiful"));
+        CompletableFuture<String> future3 = CompletableFuture.supplyAsync(() -> logReturn("World"));
+
+        String combined = Stream
+                .of(future1, future2, future3)
+                .map(CompletableFuture::join)
+                .collect(Collectors.joining(" "));
+
+        assertEquals("Hello Beautiful World", combined);
     }
 
     @Test
